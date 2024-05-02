@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"time"
 
 	"nexteam.id/gowal/wal"
 )
@@ -25,5 +26,11 @@ func main() {
 	if err = db.Write(marshal, false); err != nil {
 		panic(err)
 	}
+
+	if err = db.Write(marshal, false); err != nil {
+		panic(err)
+	}
+
+	time.Sleep(1 * time.Second)
 
 }

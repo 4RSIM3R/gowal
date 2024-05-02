@@ -94,10 +94,8 @@ func OpenWAL(dir string, fsync bool, maxSize uint, maxSegment uint) (*WAL, error
 
 	// check last sequence number
 
-
 	// keep the wal syncing
-
-
+	go wal.KeepSyncing()
 
 	return wal, nil
 
@@ -122,6 +120,47 @@ func (wal *WAL) Write(data []byte, checkpoint bool) error {
 	}
 
 	return wal.BufferWrite(entry)
+}
+
+func (wal *WAL) KeepSyncing() {
+	for {
+		select {
+		case <-wal.syncTimer.C:
+
+			fmt.Printf("Getting timeout from SyncInterval \n")
+
+			wal.lock.Lock()
+			err := wal.Sync()
+			wal.lock.Unlock()
+
+			if err != nil {
+				fmt.Printf("Error while performing sync: %v", err)
+			}
+
+		case <-wal.ctx.Done():
+			return
+		}
+	}
+}
+
+func (wal *WAL) ResetTimer() {
+	wal.syncTimer.Reset(SyncInterval)
+}
+
+func (wal *WAL) Sync() error {
+	if err := wal.bufWriter.Flush(); err != nil {
+		return err
+	}
+	if wal.shouldFsync {
+		if err := wal.currentSegment.Sync(); err != nil {
+			return err
+		}
+	}
+
+	// Reset the keepSyncing timer, since we just synced.
+	wal.ResetTimer()
+
+	return nil
 }
 
 // Function to write data
