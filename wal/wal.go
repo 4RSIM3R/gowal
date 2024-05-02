@@ -36,8 +36,10 @@ type WAL struct {
 func OpenWAL(dir string, fsync bool, maxSize uint, maxSegment uint) (*WAL, error) {
 
 	// create directory if not exist
-	if err := os.Mkdir(dir, 0755); err != nil {
-		return nil, err
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.Mkdir(dir, 0755); err != nil {
+			return nil, err
+		}
 	}
 
 	files, err := filepath.Glob(filepath.Join(dir, SegmentPrefix+"*"))
@@ -49,8 +51,10 @@ func OpenWAL(dir string, fsync bool, maxSize uint, maxSegment uint) (*WAL, error
 	var lastSegmentID int = 0
 
 	if len(files) > 0 {
-		// already a files
-		return nil, err
+		lastSegmentID, err = FindLastSegmentID(files)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		// no files here
 		file, err := CreateSegmentFile(dir, 0)

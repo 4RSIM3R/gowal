@@ -5,6 +5,8 @@ import (
 	"hash/crc32"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -52,4 +54,19 @@ func MustUnmarshal(data []byte, entry *Entry) {
 	if err := proto.Unmarshal(data, entry); err != nil {
 		panic(fmt.Sprintf("unmarshal should never fail (%v)", err))
 	}
+}
+
+func FindLastSegmentID(files []string) (int, error) {
+	var lastID int
+	for _, file := range files {
+		_, fileName := filepath.Split(file)
+		current, err := strconv.Atoi(strings.TrimPrefix(fileName, "segment-"))
+		if err != nil {
+			return 0, err
+		}
+		if current > lastID {
+			lastID = current
+		}
+	}
+	return lastID, nil
 }
